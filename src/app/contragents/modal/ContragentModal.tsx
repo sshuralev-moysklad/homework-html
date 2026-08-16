@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import type { Contragent, ContragentFormValues } from '../../types';
-import { validateContragentForm } from '../../types';
+import { validateContragentForm } from '../../validateContragentForm';
 import styles from './ContragentModal.module.css';
 
 interface ContragentModalProps {
