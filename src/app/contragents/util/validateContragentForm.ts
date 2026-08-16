@@ -1,4 +1,4 @@
-import type { ContragentFormValues } from './types';
+import type { ContragentFormValues } from '../types';
 
 const INN_PATTERN = /^\d{11}$/;
 const KPP_PATTERN = /^\d{9}$/;

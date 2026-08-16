@@ -77,6 +77,15 @@ module.exports = {
         filename: 'main.js',
         path: path.resolve(__dirname, 'dist'),
     },
+    devServer: {
+        proxy: [
+            {
+                context: ['/api'],
+                target: 'http://localhost:3001',
+                pathRewrite: { '^/api': '' },
+            },
+        ],
+    },
     plugins: [
         new HtmlWebpackPlugin({
             template: "./src/index.html",

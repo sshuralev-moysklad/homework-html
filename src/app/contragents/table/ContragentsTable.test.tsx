@@ -1,7 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ContragentsTable } from './ContragentsTable';
-import type { Contragent } from '../../types';
+import {
+  ContragentsContext,
+  type ContragentsContextValue,
+} from '../api/ContragentsContext';
+import type { Contragent } from '../types';
+import type { ReactElement } from 'react';
 
 const items: Contragent[] = [
   {
@@ -20,15 +25,32 @@ const items: Contragent[] = [
   },
 ];
 
+function renderTable(
+  ui: ReactElement,
+  value: Partial<ContragentsContextValue> = {}
+) {
+  const contextValue: ContragentsContextValue = {
+    contragents: items,
+    isLoading: false,
+    error: null,
+    loadContragents: jest.fn(),
+    addContragent: jest.fn(),
+    editContragent: jest.fn(),
+    removeContragent: jest.fn(),
+    ...value,
+  };
+
+  return {
+    ...render(
+      <ContragentsContext.Provider value={contextValue}>{ui}</ContragentsContext.Provider>
+    ),
+    contextValue,
+  };
+}
+
 describe('тесты ContragentsTable', () => {
   it('отображает строки контрагентов', () => {
-    render(
-      <ContragentsTable
-        items={items}
-        onEdit={jest.fn()}
-        onDelete={jest.fn()}
-      />
-    );
+    renderTable(<ContragentsTable onEdit={jest.fn()} />);
 
     expect(screen.getByText('ООО «Логнекс»')).toBeInTheDocument();
     expect(screen.getByText('07736570901')).toBeInTheDocument();
@@ -37,35 +59,23 @@ describe('тесты ContragentsTable', () => {
     expect(screen.getByText('ООО «Тест»')).toBeInTheDocument();
   });
 
-  it('вызывает onDelete с id элемента при нажатии «Удалить»', async () => {
+  it('вызывает removeContragent с id элемента при нажатии «Удалить»', async () => {
     const user = userEvent.setup();
-    const onDelete = jest.fn();
+    const removeContragent = jest.fn();
 
-    render(
-      <ContragentsTable
-        items={items}
-        onEdit={jest.fn()}
-        onDelete={onDelete}
-      />
-    );
+    renderTable(<ContragentsTable onEdit={jest.fn()} />, { removeContragent });
 
     const deleteButtons = screen.getAllByRole('button', { name: 'Удалить' });
     await user.click(deleteButtons[1]);
 
-    expect(onDelete).toHaveBeenCalledWith('id-2');
+    expect(removeContragent).toHaveBeenCalledWith('id-2');
   });
 
   it('вызывает onEdit при двойном клике по строке', async () => {
     const user = userEvent.setup();
     const onEdit = jest.fn();
 
-    render(
-      <ContragentsTable
-        items={items}
-        onEdit={onEdit}
-        onDelete={jest.fn()}
-      />
-    );
+    renderTable(<ContragentsTable onEdit={onEdit} />);
 
     await user.dblClick(screen.getByText('ООО «Логнекс»'));
 

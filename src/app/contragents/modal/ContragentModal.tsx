@@ -1,12 +1,12 @@
 import { FormEvent, useEffect, useState } from 'react';
-import type { Contragent, ContragentFormValues } from '../../types';
-import { validateContragentForm } from '../../validateContragentForm';
+import { useContragents } from '../api/ContragentsContext';
+import type { Contragent } from '../types';
+import { validateContragentForm } from '../util/validateContragentForm';
 import styles from './ContragentModal.module.css';
 
 interface ContragentModalProps {
   isOpen: boolean;
   initialValues: Contragent | null;
-  onSave: (values: ContragentFormValues) => void;
   onClose: () => void;
 }
 
@@ -17,7 +17,8 @@ const emptyForm = {
   kpp: '',
 };
 
-export function ContragentModal({ isOpen, initialValues, onSave, onClose }: ContragentModalProps) {
+export function ContragentModal({ isOpen, initialValues, onClose }: ContragentModalProps) {
+  const { addContragent, editContragent } = useContragents();
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof typeof emptyForm, boolean>>>({});
 
@@ -52,7 +53,7 @@ export function ContragentModal({ isOpen, initialValues, onSave, onClose }: Cont
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const values = {
@@ -69,10 +70,20 @@ export function ContragentModal({ isOpen, initialValues, onSave, onClose }: Cont
       return;
     }
 
-    onSave({
-      id: initialValues?.id,
-      ...values,
-    });
+    try {
+      if (initialValues) {
+        await editContragent({
+          id: initialValues.id,
+          ...values,
+        });
+      } else {
+        await addContragent(values);
+      }
+
+      onClose();
+    } catch {
+      return;
+    }
   }
 
   if (!isOpen) {

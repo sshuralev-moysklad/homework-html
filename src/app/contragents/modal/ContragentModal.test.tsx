@@ -1,7 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 import { ContragentModal } from './ContragentModal';
-import type { Contragent } from '../../types';
+import {
+  ContragentsContext,
+  type ContragentsContextValue,
+} from '../api/ContragentsContext';
+import type { Contragent } from '../types';
 
 const contragent: Contragent = {
   id: 'test-id',
@@ -11,13 +16,35 @@ const contragent: Contragent = {
   kpp: '773101001',
 };
 
+function renderModal(
+  ui: ReactElement,
+  value: Partial<ContragentsContextValue> = {}
+) {
+  const contextValue: ContragentsContextValue = {
+    contragents: [],
+    isLoading: false,
+    error: null,
+    loadContragents: jest.fn(),
+    addContragent: jest.fn().mockResolvedValue(undefined),
+    editContragent: jest.fn().mockResolvedValue(undefined),
+    removeContragent: jest.fn(),
+    ...value,
+  };
+
+  return {
+    ...render(
+      <ContragentsContext.Provider value={contextValue}>{ui}</ContragentsContext.Provider>
+    ),
+    contextValue,
+  };
+}
+
 describe('тесты ContragentsModal', () => {
   it('не рендерится, когда закрыта', () => {
-    render(
+    renderModal(
       <ContragentModal
         isOpen={false}
         initialValues={null}
-        onSave={jest.fn()}
         onClose={jest.fn()}
       />
     );
@@ -26,11 +53,10 @@ describe('тесты ContragentsModal', () => {
   });
 
   it('показывает пустую форму при открытии для создания', () => {
-    render(
+    renderModal(
       <ContragentModal
         isOpen={true}
         initialValues={null}
-        onSave={jest.fn()}
         onClose={jest.fn()}
       />
     );
@@ -42,11 +68,10 @@ describe('тесты ContragentsModal', () => {
   });
 
   it('показывает заполненную форму при редактировании', () => {
-    render(
+    renderModal(
       <ContragentModal
         isOpen={true}
         initialValues={contragent}
-        onSave={jest.fn()}
         onClose={jest.fn()}
       />
     );
@@ -57,17 +82,17 @@ describe('тесты ContragentsModal', () => {
     expect(screen.getByLabelText('КПП')).toHaveValue(contragent.kpp);
   });
 
-  it('показывает ошибки валидации и не вызывает onSave при невалидном ИНН и КПП', async () => {
+  it('показывает ошибки валидации и не вызывает addContragent при невалидном ИНН и КПП', async () => {
     const user = userEvent.setup();
-    const onSave = jest.fn();
+    const addContragent = jest.fn();
 
-    render(
+    renderModal(
       <ContragentModal
         isOpen={true}
         initialValues={null}
-        onSave={onSave}
         onClose={jest.fn()}
-      />
+      />,
+      { addContragent }
     );
 
     await user.type(screen.getByLabelText('Наименование'), 'Test');
@@ -78,44 +103,47 @@ describe('тесты ContragentsModal', () => {
 
     expect(screen.getByText('ИНН должен содержать 11 цифр')).toBeInTheDocument();
     expect(screen.getByText('КПП должен содержать 9 цифр')).toBeInTheDocument();
-    expect(onSave).not.toHaveBeenCalled();
+    expect(addContragent).not.toHaveBeenCalled();
   });
 
-  it('вызывает onSave с обрезанными значениями и id при валидной форме', async () => {
+  it('вызывает editContragent с обрезанными значениями и id при валидной форме', async () => {
     const user = userEvent.setup();
-    const onSave = jest.fn();
+    const editContragent = jest.fn().mockResolvedValue(undefined);
+    const onClose = jest.fn();
 
-    render(
+    renderModal(
       <ContragentModal
         isOpen={true}
         initialValues={contragent}
-        onSave={onSave}
-        onClose={jest.fn()}
-      />
+        onClose={onClose}
+      />,
+      { editContragent }
     );
 
     await user.clear(screen.getByLabelText('Наименование'));
     await user.type(screen.getByLabelText('Наименование'), '  Новое название  ');
     await user.click(screen.getByRole('button', { name: 'Сохранить' }));
 
-    expect(onSave).toHaveBeenCalledWith({
-      id: contragent.id,
-      name: 'Новое название',
-      inn: contragent.inn,
-      address: contragent.address,
-      kpp: contragent.kpp,
+    await waitFor(() => {
+      expect(editContragent).toHaveBeenCalledWith({
+        id: contragent.id,
+        name: 'Новое название',
+        inn: contragent.inn,
+        address: contragent.address,
+        kpp: contragent.kpp,
+      });
     });
+    expect(onClose).toHaveBeenCalled();
   });
 
   it('вызывает onClose при нажатии «Отменить»', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();
 
-    render(
+    renderModal(
       <ContragentModal
         isOpen={true}
         initialValues={null}
-        onSave={jest.fn()}
         onClose={onClose}
       />
     );

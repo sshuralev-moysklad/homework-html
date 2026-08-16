@@ -1,21 +1,12 @@
 import { useState } from 'react';
 import logoUrl from './logo.svg';
+import { ContragentsProvider, useContragents } from './contragents/api/ContragentsContext';
 import { ContragentModal } from './contragents/modal/ContragentModal';
 import { ContragentsTable } from './contragents/table/ContragentsTable';
-import type { Contragent, ContragentFormValues } from './types';
+import type { Contragent } from './contragents/types';
 
-const initialContragents: Contragent[] = [
-  {
-    id: crypto.randomUUID(),
-    name: 'ООО «Логнекс»',
-    inn: '07736570901',
-    address: '121205, г. Москва, территория Сколково Инновационного центра, бульвар Большой, дом 42, строение 1, помещение 1617',
-    kpp: '773101001',
-  },
-];
-
-export function App() {
-  const [contragents, setContragents] = useState<Contragent[]>(initialContragents);
+function AppContent() {
+  const { contragents, isLoading, error } = useContragents();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContragent, setEditingContragent] = useState<Contragent | null>(null);
 
@@ -31,42 +22,6 @@ export function App() {
       setEditingContragent(contragent);
       setIsModalOpen(true);
     }
-  }
-
-  function handleDelete(id: string) {
-    setContragents((current) => current.filter((item) => item.id !== id));
-  }
-
-  function handleSave(payload: ContragentFormValues) {
-    if (payload.id) {
-      setContragents((current) =>
-        current.map((item) =>
-          item.id === payload.id
-            ? {
-                id: item.id,
-                name: payload.name,
-                inn: payload.inn,
-                address: payload.address,
-                kpp: payload.kpp,
-              }
-            : item
-        )
-      );
-    } else {
-      setContragents((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          name: payload.name,
-          inn: payload.inn,
-          address: payload.address,
-          kpp: payload.kpp,
-        },
-      ]);
-    }
-
-    setIsModalOpen(false);
-    setEditingContragent(null);
   }
 
   function handleCloseModal() {
@@ -92,11 +47,12 @@ export function App() {
       </header>
 
       <main className="flex-grow max-w-screen-xl w-full mx-auto px-4 py-8">
-        <ContragentsTable
-          items={contragents}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+        {isLoading ? (
+          <p className="text-sm text-gray-500">Загрузка...</p>
+        ) : (
+          <ContragentsTable onEdit={handleEdit} />
+        )}
       </main>
 
       <footer className="py-4 text-center text-sm text-gray-500">
@@ -106,9 +62,16 @@ export function App() {
       <ContragentModal
         isOpen={isModalOpen}
         initialValues={editingContragent}
-        onSave={handleSave}
         onClose={handleCloseModal}
       />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <ContragentsProvider>
+      <AppContent />
+    </ContragentsProvider>
   );
 }

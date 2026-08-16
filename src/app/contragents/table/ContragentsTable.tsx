@@ -1,12 +1,12 @@
-import type { Contragent } from '../../types';
+import { useContragents } from '../api/ContragentsContext';
 
 interface ContragentsTableProps {
-  items: Contragent[];
   onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
 }
 
-export function ContragentsTable({ items, onEdit, onDelete }: ContragentsTableProps) {
+export function ContragentsTable({ onEdit }: ContragentsTableProps) {
+  const { contragents, removeContragent } = useContragents();
+
   return (
     <div className="relative overflow-x-auto">
       <table className="w-full text-sm text-left text-gray-500">
@@ -20,7 +20,7 @@ export function ContragentsTable({ items, onEdit, onDelete }: ContragentsTablePr
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
+          {contragents.map((item) => (
             <tr
               key={item.id}
               className="bg-white border-b cursor-pointer hover:bg-gray-50"
@@ -44,7 +44,7 @@ export function ContragentsTable({ items, onEdit, onDelete }: ContragentsTablePr
                   className="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
                   onClick={(event) => {
                     event.stopPropagation();
-                    onDelete(item.id);
+                    void removeContragent(item.id);
                   }}
                 >
                   Удалить
