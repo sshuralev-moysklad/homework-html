@@ -1,7 +1,7 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { Field, Form } from 'react-final-form';
 import { useContragents } from '../api/ContragentsContext';
 import type { Contragent } from '../types';
-import { validateContragentForm } from '../util/validateContragentForm';
+import { validateInnField, validateKppField } from '../util/validateContragentForm';
 import styles from './ContragentModal.module.css';
 
 interface ContragentModalProps {
@@ -10,90 +10,69 @@ interface ContragentModalProps {
   onClose: () => void;
 }
 
-const emptyForm = {
+type ContragentFormFields = {
+  name: string;
+  inn: string;
+  address: string;
+  kpp: string;
+};
+
+const emptyForm: ContragentFormFields = {
   name: '',
   inn: '',
   address: '',
   kpp: '',
 };
 
+const inputBaseClass =
+  'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5';
+
+function inputClassName(invalid: boolean) {
+  return invalid ? `${inputBaseClass} ${styles.inputInvalid}` : inputBaseClass;
+}
+
+function shouldShowError(meta: { error?: { message?: string }; touched?: boolean; submitFailed?: boolean }) {
+  return Boolean(meta.error && (meta.touched || meta.submitFailed));
+}
+
 export function ContragentModal({ isOpen, initialValues, onClose }: ContragentModalProps) {
   const { addContragent, editContragent } = useContragents();
-  const [form, setForm] = useState(emptyForm);
-  const [errors, setErrors] = useState<Partial<Record<keyof typeof emptyForm, boolean>>>({});
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+  if (!isOpen) {
+    return null;
+  }
 
-    if (initialValues) {
-      setForm({
+  const formInitialValues: ContragentFormFields = initialValues
+    ? {
         name: initialValues.name,
         inn: initialValues.inn,
         address: initialValues.address,
         kpp: initialValues.kpp,
-      });
-    } else {
-      setForm(emptyForm);
-    }
+      }
+    : emptyForm;
 
-    setErrors({});
-  }, [isOpen, initialValues]);
-
-  function handleFieldChange(field: keyof typeof emptyForm, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
-
-    if (errors[field]) {
-      setErrors((current) => {
-        const next = { ...current };
-        delete next[field];
-        return next;
-      });
-    }
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const values = {
-      name: form.name.trim(),
-      inn: form.inn.trim(),
-      address: form.address.trim(),
-      kpp: form.kpp.trim(),
+  async function handleSubmit(values: ContragentFormFields) {
+    const trimmed = {
+      name: values.name.trim(),
+      inn: values.inn.trim(),
+      address: values.address.trim(),
+      kpp: values.kpp.trim(),
     };
-
-    const validation = validateContragentForm(values);
-
-    if (!validation.isValid) {
-      setErrors(validation.errors);
-      return;
-    }
 
     try {
       if (initialValues) {
         await editContragent({
           id: initialValues.id,
-          ...values,
+          ...trimmed,
         });
       } else {
-        await addContragent(values);
+        await addContragent(trimmed);
       }
 
       onClose();
     } catch {
       return;
     }
-  }
-
-  if (!isOpen) {
-    return null;
-  }
-
-  function inputClassName(field: keyof typeof emptyForm) {
-    const base =
-      'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5';
-    return errors[field] ? `${base} ${styles.inputInvalid}` : base;
   }
 
   return (
@@ -122,85 +101,103 @@ export function ContragentModal({ isOpen, initialValues, onClose }: ContragentMo
               <span className="sr-only">Закрыть</span>
             </button>
           </div>
-          <form className="p-4 md:p-5 space-y-4" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="contragent-name" className="block mb-2 text-sm font-medium text-gray-900">
-                Наименование
-              </label>
-              <input
-                type="text"
-                id="contragent-name"
-                name="name"
-                value={form.name}
-                className={inputClassName('name')}
-                onChange={(event) => handleFieldChange('name', event.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="contragent-inn" className="block mb-2 text-sm font-medium text-gray-900">
-                ИНН
-              </label>
-              <input
-                type="text"
-                id="contragent-inn"
-                name="inn"
-                maxLength={11}
-                inputMode="numeric"
-                value={form.inn}
-                className={inputClassName('inn')}
-                onChange={(event) => handleFieldChange('inn', event.target.value)}
-              />
-              {errors.inn && (
-                <p className="mt-2 text-sm text-red-600">ИНН должен содержать 11 цифр</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="contragent-address" className="block mb-2 text-sm font-medium text-gray-900">
-                Адрес
-              </label>
-              <input
-                type="text"
-                id="contragent-address"
-                name="address"
-                value={form.address}
-                className={inputClassName('address')}
-                onChange={(event) => handleFieldChange('address', event.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="contragent-kpp" className="block mb-2 text-sm font-medium text-gray-900">
-                КПП
-              </label>
-              <input
-                type="text"
-                id="contragent-kpp"
-                name="kpp"
-                maxLength={9}
-                inputMode="numeric"
-                value={form.kpp}
-                className={inputClassName('kpp')}
-                onChange={(event) => handleFieldChange('kpp', event.target.value)}
-              />
-              {errors.kpp && (
-                <p className="mt-2 text-sm text-red-600">КПП должен содержать 9 цифр</p>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5"
-              >
-                Сохранить
-              </button>
-              <button
-                type="button"
-                className="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5"
-                onClick={onClose}
-              >
-                Отменить
-              </button>
-            </div>
-          </form>
+          <Form<ContragentFormFields> initialValues={formInitialValues} onSubmit={handleSubmit}>
+            {({ handleSubmit: onFormSubmit }) => (
+              <form className="p-4 md:p-5 space-y-4" onSubmit={onFormSubmit}>
+                <Field name="name">
+                  {({ input }) => (
+                    <div>
+                      <label htmlFor="contragent-name" className="block mb-2 text-sm font-medium text-gray-900">
+                        Наименование
+                      </label>
+                      <input
+                        {...input}
+                        type="text"
+                        id="contragent-name"
+                        className={inputClassName(false)}
+                      />
+                    </div>
+                  )}
+                </Field>
+                <Field name="inn" validate={validateInnField}>
+                  {({ input, meta }) => {
+                    const invalid = shouldShowError(meta);
+                    return (
+                      <div>
+                        <label htmlFor="contragent-inn" className="block mb-2 text-sm font-medium text-gray-900">
+                          ИНН
+                        </label>
+                        <input
+                          {...input}
+                          type="text"
+                          id="contragent-inn"
+                          maxLength={11}
+                          inputMode="numeric"
+                          className={inputClassName(invalid)}
+                        />
+                        {invalid && (
+                          <p className="mt-2 text-sm text-red-600">{meta.error.message}</p>
+                        )}
+                      </div>
+                    );
+                  }}
+                </Field>
+                <Field name="address">
+                  {({ input }) => (
+                    <div>
+                      <label htmlFor="contragent-address" className="block mb-2 text-sm font-medium text-gray-900">
+                        Адрес
+                      </label>
+                      <input
+                        {...input}
+                        type="text"
+                        id="contragent-address"
+                        className={inputClassName(false)}
+                      />
+                    </div>
+                  )}
+                </Field>
+                <Field name="kpp" validate={validateKppField}>
+                  {({ input, meta }) => {
+                    const invalid = shouldShowError(meta);
+                    return (
+                      <div>
+                        <label htmlFor="contragent-kpp" className="block mb-2 text-sm font-medium text-gray-900">
+                          КПП
+                        </label>
+                        <input
+                          {...input}
+                          type="text"
+                          id="contragent-kpp"
+                          maxLength={9}
+                          inputMode="numeric"
+                          className={inputClassName(invalid)}
+                        />
+                        {invalid && (
+                          <p className="mt-2 text-sm text-red-600">{meta.error.message}</p>
+                        )}
+                      </div>
+                    );
+                  }}
+                </Field>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5"
+                  >
+                    Сохранить
+                  </button>
+                  <button
+                    type="button"
+                    className="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5"
+                    onClick={onClose}
+                  >
+                    Отменить
+                  </button>
+                </div>
+              </form>
+            )}
+          </Form>
         </div>
       </div>
     </div>

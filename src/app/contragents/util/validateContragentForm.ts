@@ -1,5 +1,3 @@
-import type { ContragentFormValues } from '../types';
-
 const INN_PATTERN = /^\d{11}$/;
 const KPP_PATTERN = /^\d{9}$/;
 
@@ -11,22 +9,14 @@ export function validateKpp(value: string): boolean {
   return KPP_PATTERN.test(value);
 }
 
-export function validateContragentForm(values: Omit<ContragentFormValues, 'id'>): {
-  isValid: boolean;
-  errors: Partial<Record<keyof Omit<ContragentFormValues, 'id'>, boolean>>;
-} {
-  const errors: Partial<Record<keyof Omit<ContragentFormValues, 'id'>, boolean>> = {};
-
-  if (!validateInn(values.inn)) {
-    errors.inn = true;
+export function validateInnField(value: string) {
+  if (!validateInn((value ?? '').trim())) {
+    return { message: 'ИНН должен содержать 11 цифр' };
   }
+}
 
-  if (!validateKpp(values.kpp)) {
-    errors.kpp = true;
+export function validateKppField(value: string) {
+  if (!validateKpp((value ?? '').trim())) {
+    return { message: 'КПП должен содержать 9 цифр' };
   }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-  };
 }
