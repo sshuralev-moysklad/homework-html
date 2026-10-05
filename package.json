@@ -4,28 +4,48 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "webpack --mode production",
-    "serve": "webpack serve --mode development"
+    "api": "json-server --watch db.json --port 3001",
+    "serve": "webpack serve --mode development",
+    "dev": "concurrently -n api,web -c yellow,cyan \"npm run api\" \"npm run serve\""
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.4",
+    "@types/jest": "30.0.0",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
     "clean-webpack-plugin": "^4.0.0",
+    "concurrently": "10.0.5",
     "css-loader": "^7.1.1",
     "html-loader": "^5.0.0",
     "html-webpack-plugin": "^5.6.0",
+    "identity-obj-proxy": "3.0.0",
+    "jest": "30.4.2",
+    "jest-environment-jsdom": "30.4.1",
+    "json-server": "0.17.4",
     "mini-css-extract-plugin": "^2.9.0",
     "postcss": "^8.4.38",
     "postcss-loader": "^8.1.1",
     "postcss-preset-env": "^9.6.0",
     "style-loader": "^4.0.0",
     "tailwindcss": "^3.4.3",
+    "ts-jest": "29.4.12",
+    "ts-loader": "9.6.2",
+    "typescript": "6.0.3",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.0.4"
   },
   "dependencies": {
-    "flowbite": "^2.3.0"
+    "final-form": "5.0.1",
+    "flowbite": "^2.3.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-final-form": "7.0.1"
   }
 }
